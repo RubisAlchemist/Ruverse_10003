@@ -1423,12 +1423,14 @@ const AiConsultChannelPage = () => {
   const isUploading = useSelector(
     (state) => state.aiConsult.audio.upload.isLoading
   );
+  const sessionStatus = useSelector((state) => state.aiConsult.sessionStatus);
 
   // 선택된 아바타에 따른 소스 가져오기
   const defaultSrc = audioSources[selectedAvatar]?.defaultSrc;
   const greetingsSrc = audioSources[selectedAvatar]?.greetingsSrc;
   const errorSrc = audioSources[selectedAvatar]?.errorSrc;
   const noteSrc = audioSources[selectedAvatar]?.noteSrc;
+  const existingSrc = audioSources[selectedAvatar]?.existingSrc;
 
   // 배경 이미지 설정
   let BackgroundImage;
@@ -1548,10 +1550,23 @@ const AiConsultChannelPage = () => {
   // 상태 변화에 따른 비디오 재생 로직
   useEffect(() => {
     if (!overlayVideo) {
-      if (isGreetingsPlaying && greetingsSrc) {
-        console.log("인사말 비디오 재생");
-        setOverlayVideo(greetingsSrc);
-        setIsSeamlessPlaying(false);
+      if (isGreetingsPlaying) {
+        // Determine which source to use based on sessionStatus
+        console.log("sessionStatus: ", sessionStatus);
+        const selectedGreetingsSrc =
+          sessionStatus === "existing_client" ? existingSrc : greetingsSrc;
+        if (selectedGreetingsSrc) {
+          console.log(
+            "인사말 비디오 재생:",
+            selectedGreetingsSrc === existingSrc
+              ? "existingSrc 사용"
+              : "greetingsSrc 사용"
+          );
+          setOverlayVideo(selectedGreetingsSrc);
+          setIsSeamlessPlaying(false);
+        } else {
+          console.warn("선택된 인사말 비디오 소스가 없습니다.");
+        }
       } else if (src === "error") {
         console.log("에러 비디오 재생");
         setOverlayVideo(errorSrc);
@@ -1562,7 +1577,6 @@ const AiConsultChannelPage = () => {
         setOverlayVideo(noteSrc);
       }
     }
-
     if (src && !isSeamlessPlaying && src !== "error") {
       console.log("시작하기 seamless 비디오 재생");
       setIsSeamlessPlaying(true);
@@ -1572,14 +1586,15 @@ const AiConsultChannelPage = () => {
     overlayVideo,
     isGreetingsPlaying,
     greetingsSrc,
+    existingSrc, // 올바른 greetingsSrc 추가
     src,
     errorSrc,
     isNotePlaying,
     noteSrc,
     isSeamlessPlaying,
     dispatch,
+    sessionStatus, // Added to dependencies
   ]);
-
   // overlay 비디오 종료 핸들러
   const handleOverlayVideoEnd = useCallback(() => {
     console.log("Overlay 비디오 종료");
